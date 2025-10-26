@@ -54,12 +54,48 @@ func TestCafeCount(t *testing.T) {
 
 		respLen := 0
 		if response.Body.String() != "" {
-			respLen = len(strings.Split(response.Body.String(), ","))
+			respLen = len(strings.Split(strings.TrimSpace(response.Body.String()), ","))
 		}
 
 		require.Equal(t, http.StatusOK, response.Code)
 		assert.Equal(t, v.want, respLen)
 	}
+}
+
+func TestCafeSearch(t *testing.T) {
+	handler := http.HandlerFunc(mainHandle)
+
+	requests := []struct {
+		searchWord string
+		count      int
+	}{
+		{"фасоль", 0},
+		{"кофе", 2},
+		{"вилка", 1},
+	}
+
+	for _, v := range requests {
+		reqStr := fmt.Sprintf("/cafe?city=moscow&search=%s", v.searchWord)
+		response := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", reqStr, nil)
+
+		handler.ServeHTTP(response, req)
+
+		respSlice := strings.Split(strings.TrimSpace(response.Body.String()), ",")
+
+		for _, s := range respSlice {
+			strings.Contains(strings.ToLower(s), strings.ToLower(v.searchWord))
+		}
+
+		respLen := 0
+		if response.Body.String() != "" {
+			respLen = len(strings.Split(strings.TrimSpace(response.Body.String()), ","))
+		}
+
+		require.Equal(t, http.StatusOK, response.Code)
+		assert.Equal(t, v.count, respLen)
+	}
+
 }
 
 func TestCafeWhenOk(t *testing.T) {
